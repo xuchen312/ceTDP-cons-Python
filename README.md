@@ -1,6 +1,6 @@
 # ceTDP-cons-Python
 
-**Stage 2 tool** for computing the lower bounds on TDP (True Discovery Proportion) from **ceTDP-cons**.
+**Stage 2 Python tool** for computing the lower bounds on TDP (True Discovery Proportion) from **ceTDP-cons**.
 
 ## Installation
 
