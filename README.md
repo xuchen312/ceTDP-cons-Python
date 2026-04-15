@@ -1,44 +1,55 @@
 # ceTDP-cons-Python
 
-### Installation
+**Stage 2 tool** for computing the lower bounds on TDP (True Discovery Proportion) from **ceTDP-cons**.
 
-- Go to the project page: [ceTDP-appr](https://github.com/ppgorecki/ceTDP-appr).
+## Installation
 
-- Download the standalone tool from the repository.
+No additional packages required. Download `lb.py` and run directly. Or clone the repository:
 
-- Open a terminal, navigate to the tool directory, and run:
+```bash
+git clone https://github.com/xuchen312/ceTDP-cons-Python.git
+cd ceTDP-cons-Python
+```
+  
+## General Usage
+  
+```bash
+python lb.py -k <k-value> <file>
+```
+  
+## Arguments
+  
+- ```-k``` - Minimum significant cluster size **minus 1** (output from Stage 1)
+
+- ```file``` - Input file containing voxel coordinates (`x`, `y` and `z`) for a single region (CSV/TSV format, derived from Stage 1)
+
+  Example of input file format:
   ```
-  cd upperbounds
-  make
+  x,y,z
+  26,72,24
+  27,72,24
+  30,72,24
+  ...
   ```
   
-### General Usage
+## Output
 
-- **Syntax**:
-  ```
-  ./fgreedy -x batch7.cnf -T0 -N60 –k[kval] [file]
-  ```
-- **Inputs** (*optional*)
-  - ```batch7.cnf``` Configuration file specifying parameters and rules essential for the algorithm,
-  - ```-T``` Global time limit in seconds (use ```0``` to disable the time limit),
-  - ```-N``` No improvement time threshold in seconds (recommended: ```60```),
-  - ```-k``` k-value = min. significant cluster size − 1 (from **ClusterTDP**),
-  - ```file``` Input cluster file in CSV/TSV format (function ```WriteClusterFiles``` can be used to create these files).
+A single integer: the estimated TDN (True Discovery Number) lower bound for the input region.
   
-- **Outputs** (*optional; must use none or all for interactive exploration*)
-  - ```minscore``` Estimated TDN = TDP × cluster size.
+> TDP = TDN / |S|, where |S| is the size (number of voxels) of the region (i.e., row count of the input file).
   
-- **Example**
-  ```
-  ./fgreedy -x batch7.cnf -T0 -N60 –k128 clus1.csv
-  ```
-  
+## Example
 
+```bash
+python lb.py -k 20 xyz.csv
+```
 
-RNifti sources, mainly c, are integrated for reading 
-[NIFTI](https://brainder.org/2012/09/23/the-nifti-file-format/) files. To 
-build the executable `lb`, first build the RNifti object files with 
-`RNifti/Makefile`. [CLion IDE](https://www.jetbrains.com/clion/) was 
-used for the development. The CMakeLists.txt contains the instructions 
-to build targets `lb`.
+Output:
 
+```
+3635
+```
+
+## Any questions or bugs?
+
+Please contact Xu Chen at xuchen312@gmail.com.
