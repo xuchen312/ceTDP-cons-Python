@@ -191,8 +191,13 @@ def main():
     args = parser.parse_args()
 
     CL = load_CL(args.file)
-
-    print(lower_bound3(CL, args.k))
+    result = lower_bound3(CL, args.k)
+    
+    # header
+    print(f"{'file':<20} {'size':<10} {'TDN':<10} {'TDP':<10}")
+    # outputs
+    tdp = result / len(CL) if len(CL) > 0 else 0
+    print(f"{args.file:<20} {len(CL):<10} {result:<10} {tdp:<10.6f}")
 
 if __name__ == "__main__":
     main()
