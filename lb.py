@@ -1,9 +1,12 @@
 import argparse
+import os
+import csv
+import math
 from functools import lru_cache
 from math import floor, log
 
 # =========================================================
-# 1. base math functions
+# 1. base math
 # =========================================================
 
 def k1dfloorpowfix(d, k):
@@ -38,8 +41,9 @@ def bplus(d, k):
 
 
 # =========================================================
-# 2. f(d,k) (memoized)
+# 2. f(d,k)
 # =========================================================
+
 @lru_cache(None)
 def f(d, k):
     if d <= 0 or k <= 0:
@@ -48,14 +52,19 @@ def f(d, k):
 
 
 # =========================================================
-# 3. rk(k,3)
+# 3. RK
 # =========================================================
-@lru_cache(None)
+
 def rk_value(k, d=3):
+    fdks = [0] * (k + 1)
+
+    for j in range(1, k + 1):
+        fdks[j] = f(d, j)
+
     best = float("inf")
 
     for j in range(1, k + 1):
-        fj = f(d, j)
+        fj = fdks[j]
         val = (fj - j) / fj
         if val < best:
             best = val
@@ -64,140 +73,199 @@ def rk_value(k, d=3):
 
 
 # =========================================================
-# 4. CL operations
+# 4. CL
 # =========================================================
 
-NEIGHBORS = (
-    (0,0,0),
-    (1,0,0), (0,1,0), (0,0,1),
-    (1,1,0), (1,0,1), (0,1,1),
-    (1,1,1)
-)
-
-
-def CLplus(CL):
-    out = set()
-    add = out.add
-
-    for x, y, z in CL:
-        x1, y1, z1 = x + 1, y + 1, z + 1
-
-        add((x, y, z))
-        add((x1, y, z))
-        add((x, y1, z))
-        add((x, y, z1))
-        add((x1, y1, z))
-        add((x1, y, z1))
-        add((x, y1, z1))
-        add((x1, y1, z1))
-
-    return out
-
-
-def CLmin(CL):
-    CL = set(CL)
-    CLp = CLplus(CL)
-    CLrest = CLp - CL
-
-    out = set()
-    add = out.add
-
-    for x, y, z in CL:
-        keep = True
-        for dx, dy, dz in NEIGHBORS:
-            if (x + dx, y + dy, z + dz) in CLrest:
-                keep = False
-                break
-        if keep:
-            add((x, y, z))
-
-    return out
-
-
-def CLprune(CL, i):
-    CL = set(CL)
-
-    for _ in range(i):
-        CL = CLmin(CL)
-
-    for _ in range(i):
-        CL = CLplus(CL)
-
-    return CL
-
-
-# =========================================================
-# 5. lower bound
-# =========================================================
-def lower_bound3(CL, k):
-    n = len(CL)
-
-    # trivial case
-    if k >= n:
-        return 0
-
-    rk = rk_value(k, 3)
-
-    max_i = int(n ** (1 / 3))
-    best = 0.0
-
-    for i in range(max_i + 1):
-
-        pruned = CLprune(CL, i)
-        pruned_plus = CLplus(pruned)
-
-        rest = pruned_plus - pruned
-
-        # scale-stabilized score
-        score = rk * len(pruned_plus) - len(rest)
-
-        if score > best:
-            best = score
-
-    return int(best) + 1
-
-# =========================================================
-# 6. input loader (csv or tsv)
-# =========================================================
 def load_CL(path):
-    CL = []
+    xs, ys, zs = [], [], []
 
     with open(path, "r") as f:
-        next(f)
+        next(f, None)  # skip header
 
         for line in f:
             line = line.strip()
             if not line:
                 continue
 
-            # supports TSV or CSV
+            # split flexible (CSV / TSV / space mixed)
             parts = line.replace(",", " ").split()
 
-            if len(parts) < 3:
+            nums = []
+            for p in parts:
+                try:
+                    nums.append(float(p))
+                except:
+                    continue
+
+            # CHECK: keep row if at least 3 numeric entries exist
+            if len(nums) < 3:
                 continue
 
-            CL.append((int(parts[0]), int(parts[1]), int(parts[2])))
+            xs.append(int(nums[0]))
+            ys.append(int(nums[1]))
+            zs.append(int(nums[2]))
 
+    return [xs, ys, zs]
+
+
+# =========================================================
+# 5. CL encoding
+# =========================================================
+
+def encode(x, y, z, rx, ry):
+    return x + rx * y + rx * ry * z
+
+
+def decode_neighbors(rx, ry):
+    nx = (0,1,0,0,1,1,0,1)
+    ny = (0,0,1,0,1,0,1,1)
+    nz = (0,0,0,1,0,1,1,1)
+
+    return [nx[i] + rx * ny[i] + rx * ry * nz[i] for i in range(8)]
+
+
+# =========================================================
+# 6. CL OPERATIONS
+# =========================================================
+
+def CLplus(CL, neighbors):
+    out = set()
+    add = out.add
+    for v in CL:
+        for n in neighbors:
+            add(v + n)
+    return out
+
+
+def CLmin(CL, neighbors):
+    CLp = CLplus(CL, neighbors)
+    CLrest = CLp - CL
+
+    remove = set()
+    for v in CLrest:
+        for n in neighbors:
+            remove.add(v - n)
+
+    return CL - remove
+
+
+def CLprune(CL, i, neighbors):
+    for _ in range(i):
+        CL = CLmin(CL, neighbors)
+    for _ in range(i):
+        CL = CLplus(CL, neighbors)
     return CL
 
+
 # =========================================================
-# 7. CLI
+# 7. LOWER BOUND
 # =========================================================
+
+def lower_bound3(CL_df, rk, k):
+
+    x, y, z = CL_df
+
+    # R exact range logic
+    rx = max(x) - min(x) + 3
+    ry = max(y) - min(y) + 3
+
+    CL = [encode(xi, yi, zi, rx, ry) for xi, yi, zi in zip(x, y, z)]
+    neighbors = decode_neighbors(rx, ry)
+
+    n = len(CL)
+    if n == 0:
+        return 0
+
+    if k >= n:
+        return 0
+
+    max_i = int(n ** (1 / 3))
+
+    sV = float(len(CL) > k)
+
+    CL_set = set(CL)
+
+    for i in range(max_i + 1):
+
+        pruned = CLprune(CL_set, i, neighbors)
+        pruned_plus = CLplus(pruned, neighbors)
+
+        rest = pruned_plus - pruned
+
+        score = rk * len(pruned_plus) - len(rest)
+
+        if score > sV:
+            sV = score
+
+    return math.ceil(sV)
+
+
+# =========================================================
+# 8. FILE HANDLING
+# =========================================================
+
+def collect_files(path):
+    if os.path.isfile(path):
+        return [path]
+
+    return sorted(
+        os.path.join(path, f)
+        for f in os.listdir(path)
+        if f.lower().endswith((".csv", ".tsv"))
+    )
+
+
+def run_one(file_path, k):
+    df = load_CL(file_path)
+    
+    if len(df[0]) == 0:
+        return file_path, 0, 0, 0
+
+    rk = rk_value(k, 3)
+
+    tdn = lower_bound3(df, rk, k)
+    size = len(df[0])
+    tdp = tdn / size if size > 0 else 0
+
+    return file_path, size, tdn, tdp
+
+
+# =========================================================
+# 9. CLI
+# =========================================================
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-k", type=int, required=True)
-    parser.add_argument("file")
-
+    parser.add_argument("path")
+    parser.add_argument("-o", "--output", default=None)
     args = parser.parse_args()
 
-    CL = load_CL(args.file)
-    result = lower_bound3(CL, args.k)
-    
-    # header
-    print(f"{'file':<20} {'size':<10} {'TDN':<10} {'TDP':<10}")
-    # outputs
-    tdp = result / len(CL) if len(CL) > 0 else 0
-    print(f"{args.file:<20} {len(CL):<10} {result:<10} {tdp:<10.6f}")
+    files = collect_files(args.path)
+
+    print(f"{'file':<30} {'size':<10} {'TDN':<10} {'TDP':<10}")
+
+    results = []
+
+    for f in files:
+        file_path, size, tdn, tdp = run_one(f, args.k)
+        #results.append([file_path, size, tdn, tdp])
+        #print(f"{file_path:<30} {size:<10} {tdn:<10} {tdp:<10.6f}")
+        results.append([os.path.basename(file_path), size, tdn, tdp])
+        print(f"{os.path.basename(file_path):<30} {size:<10} {tdn:<10} {tdp:<10.6f}")
+
+    if args.output:
+        out = args.output
+        if not out.endswith(".csv"):
+            out += ".csv"
+
+        with open(out, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["file", "size", "TDN", "TDP"])
+            writer.writerows(results)
+
+        print("Results saved to:", out)
+
 
 if __name__ == "__main__":
     main()
