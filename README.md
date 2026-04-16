@@ -34,9 +34,14 @@ python lb.py -k <k-value> <file>
   
 ## Output
 
-A single integer: the estimated TDN (True Discovery Number) lower bound for the input region.
-  
-> TDP = TDN / |S|, where |S| is the size (number of voxels) of the region (i.e., row count of the input file).
+A table summarizing the estimated lower bounds for the input region.
+
+- `file`: input file name
+- `size`: |S|, size (number of voxels) of the region (i.e., row count of the input file)
+- `TDN`: estimated TDN (True Discovery Number) lower bound for the region
+- `TDP`: corresponding TDP lower bound, defined as
+
+    > TDP = TDN / |S|.
   
 ## Example
 
@@ -47,7 +52,8 @@ python lb.py -k 20 xyz.csv
 Output:
 
 ```
-3635
+file              size       TDN        TDP       
+xyz.csv           7689       3635       0.472753 
 ```
 
 ## Any questions or bugs?
