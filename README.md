@@ -25,13 +25,13 @@ python lb.py -k <k-value> <input> -o <output>
 
     - A directory containing multiple input files (CSV/TSV), or
 
-    - A single file with voxel coordinates (x, y, z) for a single region (CSV/TSV format, derived from Stage 1)
+    - A single file with voxel coordinates (x, y, z) for a single region (derived from Stage 1)
 
 - `-o` - (Optional) Output CSV file name. If provided, results are saved to the specified file.
 
 ### Input file format
 
-CSV or TSV format with x, y, z columns:
+CSV or TSV format with `x`, `y`, `z` columns:
 
 ```
 x,y,z
