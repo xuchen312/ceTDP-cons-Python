@@ -14,42 +14,51 @@ cd ceTDP-cons-Python
 ## General Usage
   
 ```bash
-python lb.py -k <k-value> <file>
+python lb.py -k <k-value> <input> -o <output>
 ```
   
 ## Arguments
   
-- ```-k``` - Minimum significant cluster size **minus 1** (output from Stage 1)
+- `-k` - Minimum significant cluster size **minus 1** (output from Stage 1)
 
-- ```file``` - Input file containing voxel coordinates (`x`, `y` and `z`) for a single region (CSV/TSV format, derived from Stage 1)
+- `input` - Either:
 
-  Example of input file format:
-  ```
-  x,y,z
-  26,72,24
-  27,72,24
-  30,72,24
-  ...
-  ```
+    - A directory containing multiple input files (CSV/TSV), or
+
+    - A single file with voxel coordinates (x, y, z) for a single region (CSV/TSV format, derived from Stage 1)
+
+- `-o` - (Optional) Output CSV file name. If provided, results are saved to the specified file.
+
+### Input file format
+
+CSV or TSV format with x, y, z columns:
+
+```
+x,y,z
+26,72,24
+27,72,24
+30,72,24
+...
+```
   
 ## Output
 
-A table summarizing the estimated lower bounds for the input region.
+A table summarizing the estimated lower bounds for each input region:
 
 - `file`: input file name
-- `size`: |S|, size (number of voxels) of the region (i.e., row count of the input file)
-- `TDN`: estimated TDN (True Discovery Number) lower bound for the region
-- `TDP`: corresponding TDP lower bound, defined as
+- `size`: |S| = number of voxels in the region (row count)
+- `TDN`: estimated TDN (True Discovery Number) lower bound
+- `TDP`: corresponding TDP lower bound = TDN / |S|
 
-    > TDP = TDN / |S|.
-  
+If `-o` is specified, the table is also saved as a CSV file.
+
 ## Example
 
 ```bash
-python lb.py -k 20 xyz.csv
+python lb.py -k 20 xyz.csv -o results
 ```
 
-Output:
+Output (printed to terminal, and saved to `results.csv`):
 
 ```
 file              size       TDN        TDP       
