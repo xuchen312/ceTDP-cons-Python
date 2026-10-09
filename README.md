@@ -1,6 +1,6 @@
 # ceTDP-cons-Python
 
-**Stage 2 Python tool** for computing the lower bounds on TDP (True Discovery Proportion) from **ceTDP-cons**.
+**Stage 2 Python tool** for computing conservative lower bounds on the TDP (True Discovery Proportion) using **ceTDP-cons**.
 
 ## Installation
 
@@ -43,11 +43,11 @@ x,y,z
   
 ## Output
 
-A table summarizing the estimated lower bounds for each input region:
+A table summarizing the TDN and TDP lower bounds for each input region:
 
 - `file`: input file name
 - `size`: |S| = number of voxels in the region (row count)
-- `TDN`: estimated TDN (True Discovery Number) lower bound
+- `TDN`: TDN (True Discovery Number) lower bound
 - `TDP`: corresponding TDP lower bound = TDN / |S|
 
 If `-o` is specified, the table is also saved as a CSV file.
